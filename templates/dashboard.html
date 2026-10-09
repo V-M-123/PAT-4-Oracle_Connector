@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle Studio Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-body-tertiary">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top border-bottom border-secondary-subtle px-3 shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="/dashboard">
+                <i class="bi bi-book-half text-warning fs-4 me-2"></i>
+                <span>Library Management System</span>
+                <span class="badge bg-secondary ms-2 small fw-normal d-none d-sm-inline">Oracle Studio</span>
+            </a>
+            
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <span class="badge bg-secondary-subtle text-light border border-secondary px-3 py-2 d-none d-lg-inline-block">
+                    <i class="bi bi-person-check-fill text-success me-1"></i>
+                    <strong class="text-uppercase">{{ username }}</strong>@{{ host }}:{{ port }}/{{ service }}
+                </span>
+
+                <button class="btn btn-sm btn-outline-warning" id="initLibrarySchemaBtn" title="Set up Library Tables (Books, Members, Issues)">
+                    <i class="bi bi-magic me-1"></i>Init Library Tables
+                </button>
+
+                <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#sqlConsoleModal">
+                    <i class="bi bi-terminal-fill me-1"></i>SQL Console
+                </button>
+
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createTableModal">
+                    <i class="bi bi-plus-circle me-1"></i>New Table
+                </button>
+
+                <form method="POST" action="{{ url_for('logout') }}" class="m-0">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Disconnect and Logout">
+                        <i class="bi bi-box-arrow-right me-1"></i>Disconnect
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid py-3">
+        <div class="row g-3">
+            <!-- Sidebar: Table List -->
+            <div class="col-lg-3 col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-journal-bookmark me-2 text-primary"></i>Tables
+                            <span class="badge bg-primary-subtle text-primary rounded-pill ms-1" id="tableCountBadge">0</span>
+                        </h6>
+                        <button class="btn btn-sm btn-light border p-1 px-2" id="refreshTablesBtn" title="Refresh Table List">
+                            <i class="bi bi-arrow-clockwise" id="refreshTablesIcon"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-2 border-bottom bg-light-subtle">
+                        <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="tableSearchInput" placeholder="Filter tables...">
+                        </div>
+                        <div class="form-check form-switch small mb-0">
+                            <input class="form-check-input" type="checkbox" id="excludeSystemTablesSwitch" checked>
+                            <label class="form-check-label fw-semibold text-secondary" for="excludeSystemTablesSwitch">
+                                Ignore Oracle System Tables
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="list-group list-group-flush overflow-y-auto" id="tablesListGroup" style="max-height: calc(100vh - 200px);">
+                        <div class="text-center py-4 text-muted">
+                            <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                            <div>Loading tables...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area: Selected Table & Data -->
+            <div class="col-lg-9 col-md-8">
+                <!-- Welcome / Empty State (shown when no table is selected) -->
+                <div class="card shadow-sm border-0 p-5 text-center" id="emptyStateCard">
+                    <div class="my-5">
+                        <i class="bi bi-database display-1 text-secondary opacity-50 mb-3 d-block"></i>
+                        <h3 class="fw-bold">No Table Selected</h3>
+                        <p class="text-muted mx-auto" style="max-width: 480px;">
+                            Select a table from the sidebar to inspect its columns, view rows, insert new records, or drop it. You can also create a new table or run direct SQL queries.
+                        </p>
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTableModal">
+                                <i class="bi bi-plus-lg me-1"></i>Create New Table
+                            </button>
+                            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sqlConsoleModal">
+                                <i class="bi bi-terminal me-1"></i>Open SQL Console
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Content Card (shown when table is loaded) -->
+                <div class="card shadow-sm border-0 d-none" id="tableContentCard">
+                    <!-- Table Header & Actions -->
+                    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-table text-primary fs-4"></i>
+                            <h4 class="mb-0 fw-bold font-monospace" id="activeTableName">TABLE_NAME</h4>
+                            <span class="badge bg-secondary rounded-pill" id="activeTableRowCount">0 rows</span>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" id="refreshActiveTableBtn" title="Refresh Table">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Reload
+                            </button>
+                            <button class="btn btn-sm btn-success" id="insertRowBtn">
+                                <i class="bi bi-plus-circle me-1"></i>Insert Row
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" id="dropTableBtn">
+                                <i class="bi bi-trash3 me-1"></i>Drop Table
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Schema & Column Badges -->
+                    <div class="card-body bg-light-subtle py-2 px-3 border-bottom">
+                        <div class="d-flex align-items-center flex-wrap gap-1" id="columnsBadgeContainer">
+                            <!-- Populated with column types -->
+                        </div>
+                    </div>
+
+                    <!-- Filter rows within table -->
+                    <div class="p-2 border-bottom bg-white d-flex justify-content-between align-items-center">
+                        <div class="input-group input-group-sm" style="max-width: 320px;">
+                            <span class="input-group-text bg-transparent"><i class="bi bi-funnel text-muted"></i></span>
+                            <input type="text" class="form-control" id="rowDataFilterInput" placeholder="Quick search in current rows...">
+                        </div>
+                        <div class="small text-muted" id="tableRowsInfo">Showing up to 500 rows</div>
+                    </div>
+
+                    <!-- Data Grid -->
+                    <div class="table-responsive" style="max-height: calc(100vh - 300px); min-height: 250px;">
+                        <table class="table table-hover table-striped table-bordered align-middle mb-0 font-monospace small" id="activeDataTable">
+                            <thead class="table-light sticky-top" id="activeDataTableHead">
+                                <!-- Populated dynamically -->
+                            </thead>
+                            <tbody id="activeDataTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+        <div id="appToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Action completed!</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Create Table -->
+    <div class="modal fade" id="createTableModal" tabindex="-1" aria-labelledby="createTableModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="createTableModalLabel">
+                        <i class="bi bi-table me-2"></i>Create New Oracle Table
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold mb-0">Quick Library Templates</label>
+                            <span class="small text-muted">Click to auto-populate columns</span>
+                        </div>
+                        <div class="btn-group btn-group-sm w-100" role="group">
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadLibraryTemplate('BOOKS')">
+                                <i class="bi bi-book me-1"></i>Books
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadLibraryTemplate('MEMBERS')">
+                                <i class="bi bi-people me-1"></i>Members
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadLibraryTemplate('ISSUES')">
+                                <i class="bi bi-arrow-left-right me-1"></i>Book Issues
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadLibraryTemplate('AUTHORS')">
+                                <i class="bi bi-pen me-1"></i>Authors
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="newTableName" class="form-label fw-bold">Table Name</label>
+                        <input type="text" class="form-control font-monospace" id="newTableName" placeholder="e.g. BOOKS, MEMBERS, AUTHORS" required>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold mb-0">Columns Definition</label>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addColumnBtn">
+                            <i class="bi bi-plus-lg me-1"></i>Add Column
+                        </button>
+                    </div>
+
+                    <div class="table-responsive border rounded mb-3">
+                        <table class="table table-sm align-middle mb-0" id="columnsBuilderTable">
+                            <thead class="table-light">
+                                <tr class="small text-muted">
+                                    <th>Column Name</th>
+                                    <th>Data Type</th>
+                                    <th>Length / Precision</th>
+                                    <th class="text-center">Nullable</th>
+                                    <th class="text-center">Primary Key</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="columnsBuilderBody">
+                                <!-- Default starter columns inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- DDL Preview -->
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small text-muted mb-0">Live SQL DDL (Editable)</label>
+                            <span class="badge bg-light text-secondary border small">Syncs with builder</span>
+                        </div>
+                        <textarea class="form-control font-monospace small bg-dark text-light" id="createTableSqlPreview" rows="4"></textarea>
+                    </div>
+                    
+                    <div id="createTableError" class="alert alert-danger py-2 small d-none mt-2"></div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary fw-bold" id="executeCreateTableBtn">
+                        <i class="bi bi-check-lg me-1"></i>Create Table
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Insert Row -->
+    <div class="modal fade" id="insertRowModal" tabindex="-1" aria-labelledby="insertRowModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="insertRowModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Insert Row into <span id="insertModalTableName"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="insertRowForm">
+                        <div id="insertRowFormFields">
+                            <!-- Dynamic fields for each column -->
+                        </div>
+                    </form>
+                    <div id="insertRowError" class="alert alert-danger py-2 small d-none mt-2"></div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success fw-bold" id="executeInsertRowBtn">
+                        <i class="bi bi-check2-circle me-1"></i>Insert Row
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Drop Table Confirmation -->
+    <div class="modal fade" id="dropTableModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Drop Table Confirmation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3">
+                        Are you sure you want to permanently drop table <strong class="text-danger font-monospace" id="dropModalTableName">TABLE</strong>?
+                        All rows and data inside this table will be deleted.
+                    </p>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="dropCascadeConstraints" checked>
+                        <label class="form-check-label small" for="dropCascadeConstraints">
+                            Cascade constraints (drops dependent foreign keys)
+                        </label>
+                    </div>
+                    <div id="dropTableError" class="alert alert-danger py-2 small d-none mt-2"></div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger fw-bold" id="confirmDropTableBtn">
+                        <i class="bi bi-trash3-fill me-1"></i>Drop Table Permanently
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SQL Console -->
+    <div class="modal fade" id="sqlConsoleModal" tabindex="-1" aria-labelledby="sqlConsoleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold" id="sqlConsoleModalLabel">
+                        <i class="bi bi-terminal-fill text-info me-2"></i>Oracle SQL Console
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small text-muted mb-0">SQL Query / DDL / DML</label>
+                            <span class="small text-muted">Supports SELECT, INSERT, UPDATE, DELETE, CREATE, DROP</span>
+                        </div>
+                        <textarea class="form-control font-monospace bg-dark text-light p-3 small" id="sqlConsoleInput" rows="5" placeholder="SELECT * FROM USER_TABLES;"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div id="sqlExecutionStatus" class="small text-muted">Ready</div>
+                        <button class="btn btn-primary btn-sm px-4 fw-bold" id="runSqlQueryBtn">
+                            <i class="bi bi-play-fill me-1"></i>Run SQL
+                        </button>
+                    </div>
+
+                    <div id="sqlQueryResultWrapper" class="border rounded p-2 bg-light-subtle d-none" style="max-height: 400px; overflow-y: auto;">
+                        <div id="sqlQueryMessage" class="alert py-2 small d-none"></div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-bordered font-monospace small mb-0" id="sqlQueryTable">
+                                <thead class="table-dark" id="sqlQueryTableHead"></thead>
+                                <tbody id="sqlQueryTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

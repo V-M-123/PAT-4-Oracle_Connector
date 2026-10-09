@@ -1,0 +1,66 @@
+/* Modern styling for Oracle Web Studio */
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f4f6f9;
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    background-color: #f8fafc;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* Sidebar tables list */
+#tablesListGroup .list-group-item {
+    border-left: 3px solid transparent;
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+}
+
+#tablesListGroup .list-group-item:hover {
+    background-color: #f1f5f9;
+}
+
+#tablesListGroup .list-group-item.active {
+    background-color: #e2e8f0;
+    color: #0f172a;
+    border-left: 3px solid #0d6efd;
+    font-weight: 600;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.null-badge {
+    font-style: italic;
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+/* Code area */
+textarea.font-monospace {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+}
