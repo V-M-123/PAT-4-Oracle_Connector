@@ -83,6 +83,23 @@ function initEventListeners() {
     if (initBtn) {
         initBtn.addEventListener('click', handleInitLibrarySchema);
     }
+
+    // SQL Console execution
+    const runSqlBtn = document.getElementById('runSqlQueryBtn');
+    if (runSqlBtn) {
+        runSqlBtn.addEventListener('click', handleRunSqlQuery);
+    }
+
+    // SQL Console keyboard shortcut (Ctrl+Enter or Cmd+Enter)
+    const sqlInput = document.getElementById('sqlConsoleInput');
+    if (sqlInput) {
+        sqlInput.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                handleRunSqlQuery();
+            }
+        });
+    }
 }
 
 // =================== LIBRARY MANAGEMENT HELPERS ===================
@@ -593,6 +610,14 @@ async function handleExecuteCreateTable() {
 
 // =================== SQL CONSOLE ===================
 
+function setSqlQuery(sql) {
+    const input = document.getElementById('sqlConsoleInput');
+    if (input) {
+        input.value = sql;
+        input.focus();
+    }
+}
+
 async function handleRunSqlQuery() {
     const sql = document.getElementById('sqlConsoleInput').value.trim();
     const statusEl = document.getElementById('sqlExecutionStatus');
@@ -624,11 +649,15 @@ async function handleRunSqlQuery() {
             statusEl.textContent = 'Execution finished successfully.';
             if (data.type === 'select') {
                 msgEl.className = 'alert alert-info py-2 small';
-                msgEl.textContent = `Returned ${data.count} rows.`;
+                msgEl.textContent = `Query returned ${data.count} row(s).`;
                 msgEl.classList.remove('d-none');
 
                 thead.innerHTML = '<tr>' + data.columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
-                tbody.innerHTML = data.rows.map(r => '<tr>' + r.map(c => `<td>${c === null ? '<span class="null-badge">NULL</span>' : escapeHtml(String(c))}</td>`).join('') + '</tr>').join('');
+                if (!data.rows || data.rows.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${Math.max(data.columns.length, 1)}" class="text-center py-3 text-muted">0 rows returned.</td></tr>`;
+                } else {
+                    tbody.innerHTML = data.rows.map(r => '<tr>' + r.map(c => `<td>${c === null ? '<span class="null-badge">NULL</span>' : escapeHtml(String(c))}</td>`).join('') + '</tr>').join('');
+                }
             } else {
                 msgEl.className = 'alert alert-success py-2 small';
                 msgEl.textContent = data.message || 'Executed successfully.';

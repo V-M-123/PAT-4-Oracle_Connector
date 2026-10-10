@@ -327,9 +327,17 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label fw-bold small text-muted mb-0">SQL Query / DDL / DML</label>
-                            <span class="small text-muted">Supports SELECT, INSERT, UPDATE, DELETE, CREATE, DROP</span>
+                            <span class="small text-muted">Supports SELECT, INSERT, UPDATE, DELETE, CREATE, DROP (Press Ctrl+Enter to run)</span>
                         </div>
-                        <textarea class="form-control font-monospace bg-dark text-light p-3 small" id="sqlConsoleInput" rows="5" placeholder="SELECT * FROM USER_TABLES;"></textarea>
+                        <div class="mb-2 d-flex flex-wrap gap-1 align-items-center">
+                            <span class="small text-muted me-1">Quick Queries:</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setSqlQuery('SELECT * FROM LMS_BOOKS')">LMS_BOOKS</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setSqlQuery('SELECT * FROM LMS_MEMBERS')">LMS_MEMBERS</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setSqlQuery('SELECT * FROM LMS_BOOK_ISSUES')">LMS_BOOK_ISSUES</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setSqlQuery('SELECT TABLE_NAME, NUM_ROWS FROM USER_TABLES WHERE TABLE_NAME NOT LIKE \'%$%\' ORDER BY TABLE_NAME')">User Tables</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setSqlQuery('SELECT SYSDATE, USER FROM DUAL')">SYSDATE / USER</button>
+                        </div>
+                        <textarea class="form-control font-monospace bg-dark text-light p-3 small" id="sqlConsoleInput" rows="5" placeholder="SELECT * FROM LMS_BOOKS"></textarea>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div id="sqlExecutionStatus" class="small text-muted">Ready</div>

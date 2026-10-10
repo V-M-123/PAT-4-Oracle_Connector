@@ -493,22 +493,27 @@ def delete_row(table_name):
 def execute_query():
     """Execute raw SQL statements entered in the SQL Console."""
     if 'db_user' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
+        return jsonify({'error': 'Unauthorized. Please log in.'}), 401
 
     payload = request.get_json(force=True)
-    raw_sql = payload.get('sql', '').strip().rstrip(';')
+    raw_sql = payload.get('sql', '').strip()
 
     if not raw_sql:
         return jsonify({'error': 'No query provided.'}), 400
 
-    is_select = raw_sql.lstrip().upper().startswith('SELECT') or raw_sql.lstrip().upper().startswith('WITH')
+    # Strip trailing semicolons or slashes which cause ORA-00911 in Oracle DB-API
+    clean_sql = raw_sql.strip()
+    while clean_sql.endswith(';') or clean_sql.endswith('/'):
+        clean_sql = clean_sql[:-1].strip()
 
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(raw_sql)
-                if is_select:
-                    col_names = [d[0] for d in cur.description] if cur.description else []
+                cur.execute(clean_sql)
+                
+                # Python DB-API sets cur.description if statement returns rows
+                if cur.description is not None:
+                    col_names = [d[0] for d in cur.description]
                     rows = cur.fetchmany(500)
                     serialized_rows = []
                     for r in rows:
