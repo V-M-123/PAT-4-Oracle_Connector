@@ -8,14 +8,22 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="bg-body-tertiary">
+<body class="bg-body-tertiary" data-engine="{{ engine }}">
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top border-bottom border-secondary-subtle px-3 shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold d-flex align-items-center" href="/dashboard">
                 <i class="bi bi-book-half text-warning fs-4 me-2"></i>
                 <span>Library Management System</span>
-                <span class="badge bg-secondary ms-2 small fw-normal d-none d-sm-inline">Oracle Studio</span>
+                {% if engine == 'supabase' %}
+                    <span class="badge bg-success-subtle text-success border border-success ms-2 small fw-bold">
+                        <i class="bi bi-cloud-check-fill me-1"></i>Supabase
+                    </span>
+                {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger ms-2 small fw-bold">
+                        <i class="bi bi-database me-1"></i>Oracle
+                    </span>
+                {% endif %}
             </a>
             
             <div class="d-flex align-items-center gap-2 ms-auto">
@@ -324,18 +332,123 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-3">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label fw-bold small text-muted mb-0">SQL Query / DDL / DML</label>
-                            <span class="small text-muted">Supports SELECT, INSERT, UPDATE, DELETE, CREATE, DROP (Press Ctrl+Enter to run)</span>
+                    <!-- Category Tabs for DQL / DML / DDL -->
+                    <ul class="nav nav-tabs nav-fill mb-3 fw-semibold" id="sqlCategoryTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active py-2 d-flex align-items-center justify-content-center gap-2 text-primary" 
+                                    id="tab-dql" data-bs-toggle="tab" data-bs-target="#pane-dql" type="button" role="tab">
+                                <i class="bi bi-search"></i>
+                                <span>DQL</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle small fw-normal">SELECT Queries</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-2 d-flex align-items-center justify-content-center gap-2 text-warning-emphasis" 
+                                    id="tab-dml" data-bs-toggle="tab" data-bs-target="#pane-dml" type="button" role="tab">
+                                <i class="bi bi-pencil-square"></i>
+                                <span>DML</span>
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small fw-normal">INSERT / UPDATE / DELETE</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-2 d-flex align-items-center justify-content-center gap-2 text-danger" 
+                                    id="tab-ddl" data-bs-toggle="tab" data-bs-target="#pane-ddl" type="button" role="tab">
+                                <i class="bi bi-tools"></i>
+                                <span>DDL</span>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small fw-normal">CREATE / ALTER / DROP</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Contents -->
+                    <div class="tab-content" id="sqlCategoryTabContent">
+                        <!-- DQL PANE (Data Query Language) -->
+                        <div class="tab-pane fade show active" id="pane-dql" role="tabpanel" aria-labelledby="tab-dql">
+                            <div class="card bg-light border-0 mb-2 p-2">
+                                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 300px;">
+                                        <span class="small fw-semibold text-secondary text-nowrap"><i class="bi bi-table me-1"></i>Table:</span>
+                                        <select class="form-select form-select-sm table-selector" id="dqlTableSelect">
+                                            <option value="">-- Choose Table --</option>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                                        <span class="small text-muted me-1">Builders:</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" id="btnDqlSelectAll">SELECT *</button>
+                                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" id="btnDqlCount">COUNT(*)</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="btnDqlWhere">+ WHERE</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="btnDqlOrderBy">+ ORDER BY</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="btnDqlLimit">+ LIMIT 50</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea class="form-control font-monospace bg-dark text-light p-3 small sql-console-input" 
+                                      id="dqlConsoleInput" rows="5" spellcheck="false"
+                                      placeholder="SELECT * FROM LMS_BOOKS;"></textarea>
                         </div>
-                        <textarea class="form-control font-monospace bg-dark text-light p-3 small" id="sqlConsoleInput" rows="5" placeholder="SELECT * FROM LMS_BOOKS"></textarea>
+
+                        <!-- DML PANE (Data Manipulation Language) -->
+                        <div class="tab-pane fade" id="pane-dml" role="tabpanel" aria-labelledby="tab-dml">
+                            <div class="card bg-light border-0 mb-2 p-2">
+                                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 300px;">
+                                        <span class="small fw-semibold text-secondary text-nowrap"><i class="bi bi-table me-1"></i>Table:</span>
+                                        <select class="form-select form-select-sm table-selector" id="dmlTableSelect">
+                                            <option value="">-- Choose Table --</option>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                                        <span class="small text-muted me-1">Templates:</span>
+                                        <button type="button" class="btn btn-sm btn-outline-success py-0 px-2" id="btnDmlInsert">+ INSERT</button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2" id="btnDmlUpdate">+ UPDATE</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="btnDmlDelete">+ DELETE</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea class="form-control font-monospace bg-dark text-light p-3 small sql-console-input" 
+                                      id="dmlConsoleInput" rows="5" spellcheck="false"
+                                      placeholder="INSERT INTO LMS_BOOKS (TITLE, AUTHOR, COPIES) VALUES ('Dune', 'Frank Herbert', 5);"></textarea>
+                        </div>
+
+                        <!-- DDL PANE (Data Definition Language) -->
+                        <div class="tab-pane fade" id="pane-ddl" role="tabpanel" aria-labelledby="tab-ddl">
+                            <div class="card bg-light border-0 mb-2 p-2">
+                                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 300px;">
+                                        <span class="small fw-semibold text-secondary text-nowrap"><i class="bi bi-table me-1"></i>Table:</span>
+                                        <select class="form-select form-select-sm table-selector" id="ddlTableSelect">
+                                            <option value="">-- Choose Table --</option>
+                                        </select>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                                        <span class="small text-muted me-1">Templates:</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" id="btnDdlCreate">+ CREATE TABLE</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="btnDdlAddCol">+ ADD COL</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="btnDdlDropCol">+ DROP COL</button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2" id="btnDdlTruncate">+ TRUNCATE</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="btnDdlDrop">+ DROP TABLE</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea class="form-control font-monospace bg-dark text-light p-3 small sql-console-input" 
+                                      id="ddlConsoleInput" rows="5" spellcheck="false"
+                                      placeholder="CREATE TABLE MY_TABLE (&#10;    ID NUMBER PRIMARY KEY,&#10;    NAME VARCHAR2(100) NOT NULL&#10;);"></textarea>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div id="sqlExecutionStatus" class="small text-muted">Ready</div>
-                        <button class="btn btn-primary btn-sm px-4 fw-bold" id="runSqlQueryBtn">
-                            <i class="bi bi-play-fill me-1"></i>Run SQL
-                        </button>
+
+                    <!-- Shared Action & Execution Bar -->
+                    <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                        <div id="sqlExecutionStatus" class="small text-muted">
+                            <i class="bi bi-info-circle me-1"></i>Press <kbd>Ctrl+Enter</kbd> to execute
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary px-3" id="clearSqlConsoleBtn">
+                                <i class="bi bi-eraser me-1"></i>Clear
+                            </button>
+                            <button class="btn btn-primary btn-sm px-4 fw-bold" id="runSqlQueryBtn">
+                                <i class="bi bi-play-fill me-1"></i>Execute Command
+                            </button>
+                        </div>
                     </div>
 
                     <div id="sqlQueryResultWrapper" class="border rounded p-2 bg-light-subtle d-none" style="max-height: 400px; overflow-y: auto;">

@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect to Oracle Database</title>
+    <title>Database Connect - Library Studio</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="bg-dark text-light d-flex align-items-center justify-content-center min-vh-100 py-4">
-    <div class="container" style="max-width: 520px;">
+    <div class="container" style="max-width: 560px;">
         <div class="card bg-secondary-subtle border-0 shadow-lg text-dark rounded-4 overflow-hidden">
+            <!-- Header -->
             <div class="card-header bg-gradient bg-primary text-white p-4 text-center border-0">
-                <div class="display-6 fw-bold mb-1">
-                    <i class="bi bi-database-fill-gear me-2"></i>Oracle Studio
+                <div class="display-6 fw-bold mb-1 d-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-book-half text-warning"></i>
+                    <span>Library Studio</span>
                 </div>
-                <p class="mb-0 text-white-50 small">Web Database Manager for Oracle SQL*Plus & Local Instances</p>
+                <p class="mb-0 text-white-50 small">Universal Database Portal &bull; Oracle &amp; Supabase Dual-Mode</p>
             </div>
             
             <div class="card-body p-4 p-md-5">
@@ -31,80 +33,168 @@
                     {% endif %}
                 {% endwith %}
 
-                <form method="POST" action="{{ url_for('login') }}">
-                    <div class="mb-3">
-                        <label for="username" class="form-label fw-semibold">
-                            <i class="bi bi-person-badge me-1 text-primary"></i>Username / Schema
-                        </label>
-                        <input type="text" class="form-control form-control-lg" id="username" name="username" 
-                               value="{{ user or 'system' }}" placeholder="e.g. system, scott, hr" required autofocus>
-                    </div>
+                <!-- Engine Selection Tabs -->
+                <ul class="nav nav-pills nav-fill mb-4 p-1 bg-white rounded-3 border" id="engineTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if active_tab != 'supabase' %}active{% endif %} fw-bold py-2 d-flex align-items-center justify-content-center gap-2" 
+                                id="oracle-tab" data-bs-toggle="pill" data-bs-target="#oraclePane" type="button" role="tab" onclick="setEngine('oracle')">
+                            <i class="bi bi-database"></i> Oracle (Local)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if active_tab == 'supabase' %}active{% endif %} fw-bold py-2 d-flex align-items-center justify-content-center gap-2" 
+                                id="supabase-tab" data-bs-toggle="pill" data-bs-target="#supabasePane" type="button" role="tab" onclick="setEngine('supabase')">
+                            <i class="bi bi-cloud-check-fill text-success"></i> Supabase (Cloud)
+                        </button>
+                    </li>
+                </ul>
 
-                    <div class="mb-3">
-                        <label for="password" class="form-label fw-semibold">
-                            <i class="bi bi-key-fill me-1 text-primary"></i>Password
-                        </label>
-                        <div class="input-group">
-                            <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Enter password" required>
-                            <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn">
-                                <i class="bi bi-eye" id="toggleIcon"></i>
+                <div class="tab-content" id="engineTabContent">
+                    <!-- ORACLE LOGIN TAB -->
+                    <div class="tab-pane fade {% if active_tab != 'supabase' %}show active{% endif %}" id="oraclePane" role="tabpanel">
+                        <form method="POST" action="{{ url_for('login') }}">
+                            <input type="hidden" name="engine" value="oracle">
+
+                            <div class="mb-3">
+                                <label for="username" class="form-label fw-semibold">
+                                    <i class="bi bi-person-badge me-1 text-primary"></i>Username / Schema
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="username" name="username" 
+                                       value="{{ user or 'system' }}" placeholder="e.g. system, scott, hr" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label fw-semibold">
+                                    <i class="bi bi-key-fill me-1 text-primary"></i>Password
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Enter Oracle password" required>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePass('password', 'toggleOraIcon')">
+                                        <i class="bi bi-eye" id="toggleOraIcon"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-8">
+                                    <label for="host" class="form-label fw-semibold small">Host</label>
+                                    <input type="text" class="form-control" id="host" name="host" value="{{ host or 'localhost' }}" required>
+                                </div>
+                                <div class="col-4">
+                                    <label for="port" class="form-label fw-semibold small">Port</label>
+                                    <input type="number" class="form-control" id="port" name="port" value="{{ port or '1521' }}" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold small d-block">Connection Mode</label>
+                                <div class="btn-group w-100 mb-2" role="group">
+                                    <input type="radio" class="btn-check" name="conn_type" id="connService" value="service" 
+                                           {% if conn_type != 'sid' %}checked{% endif %} onchange="toggleConnMode()">
+                                    <label class="btn btn-outline-primary" for="connService">Service Name</label>
+
+                                    <input type="radio" class="btn-check" name="conn_type" id="connSid" value="sid" 
+                                           {% if conn_type == 'sid' %}checked{% endif %} onchange="toggleConnMode()">
+                                    <label class="btn btn-outline-primary" for="connSid">SID</label>
+                                </div>
+
+                                <div id="serviceNameWrapper" class="{% if conn_type == 'sid' %}d-none{% endif %}">
+                                    <div class="input-group">
+                                        <span class="input-group-text small">Service Name</span>
+                                        <input type="text" class="form-control" id="service_name" name="service_name" 
+                                               value="{{ service_name or 'xe' }}" placeholder="e.g. xe, orcl, xepdb1">
+                                    </div>
+                                </div>
+
+                                <div id="sidWrapper" class="{% if conn_type != 'sid' %}d-none{% endif %}">
+                                    <div class="input-group">
+                                        <span class="input-group-text small">SID</span>
+                                        <input type="text" class="form-control" id="sid" name="sid" 
+                                               value="{{ sid or 'xe' }}" placeholder="e.g. xe">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Connect to Oracle
                             </button>
-                        </div>
+                        </form>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-8">
-                            <label for="host" class="form-label fw-semibold small">Host</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-hdd-network"></i></span>
-                                <input type="text" class="form-control" id="host" name="host" value="{{ host or 'localhost' }}" required>
+                    <!-- SUPABASE LOGIN TAB -->
+                    <div class="tab-pane fade {% if active_tab == 'supabase' %}show active{% endif %}" id="supabasePane" role="tabpanel">
+                        <form method="POST" action="{{ url_for('login') }}">
+                            <input type="hidden" name="engine" value="supabase">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold small d-block">Connection Input Method</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="supabase_auth_mode" id="sbModeUri" value="uri" checked onchange="toggleSbAuthMode()">
+                                    <label class="btn btn-outline-success" for="sbModeUri">
+                                        <i class="bi bi-link-45deg me-1"></i>Connection URI (1-Click)
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="supabase_auth_mode" id="sbModeParams" value="params" onchange="toggleSbAuthMode()">
+                                    <label class="btn btn-outline-success" for="sbModeParams">
+                                        <i class="bi bi-sliders me-1"></i>Manual Fields
+                                    </label>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-4">
-                            <label for="port" class="form-label fw-semibold small">Port</label>
-                            <input type="number" class="form-control" id="port" name="port" value="{{ port or '1521' }}" required>
-                        </div>
+
+                            <!-- URI Mode Input -->
+                            <div id="sbUriSection" class="mb-4">
+                                <label for="connection_uri" class="form-label fw-semibold">
+                                    <i class="bi bi-key-fill text-success me-1"></i>Supabase Connection URI
+                                </label>
+                                <textarea class="form-control font-monospace small" id="connection_uri" name="connection_uri" rows="3" 
+                                          placeholder="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres">{{ connection_uri or '' }}</textarea>
+                                <div class="alert alert-info py-2 px-3 small mt-2 mb-0">
+                                    <i class="bi bi-info-circle-fill me-1"></i>
+                                    <strong>Important:</strong> Under <strong>Connection string</strong> in your Supabase dashboard, select <strong>Connection Pooler</strong> (Mode: <em>Transaction</em> on port 6543 or <em>Session</em> on port 5432). Do not select "Direct", as direct hosts require an IPv6 connection.
+                                </div>
+                            </div>
+
+                            <!-- Manual Parameters Mode -->
+                            <div id="sbParamsSection" class="d-none">
+                                <div class="mb-3">
+                                    <label for="sb_host" class="form-label fw-semibold small">Host</label>
+                                    <input type="text" class="form-control" id="sb_host" name="sb_host" 
+                                           value="{{ sb_host or '' }}" placeholder="e.g. db.xxxx.supabase.co or aws-0-xx.pooler.supabase.com">
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-8">
+                                        <label for="sb_database" class="form-label fw-semibold small">Database</label>
+                                        <input type="text" class="form-control" id="sb_database" name="sb_database" value="{{ sb_database or 'postgres' }}">
+                                    </div>
+                                    <div class="col-4">
+                                        <label for="sb_port" class="form-label fw-semibold small">Port</label>
+                                        <input type="number" class="form-control" id="sb_port" name="sb_port" value="{{ sb_port or '5432' }}">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="sb_user" class="form-label fw-semibold small">User</label>
+                                    <input type="text" class="form-control" id="sb_user" name="sb_user" value="{{ sb_user or 'postgres' }}">
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="sb_password" class="form-label fw-semibold small">Database Password</label>
+                                    <input type="password" class="form-control" id="sb_password" name="sb_password" placeholder="Enter Supabase DB Password">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm">
+                                <i class="bi bi-cloud-arrow-up-fill me-2"></i>Connect to Supabase
+                            </button>
+                        </form>
                     </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold small d-block">Connection Mode</label>
-                        <div class="btn-group w-100 mb-2" role="group">
-                            <input type="radio" class="btn-check" name="conn_type" id="connService" value="service" 
-                                   {% if conn_type != 'sid' %}checked{% endif %} onchange="toggleConnMode()">
-                            <label class="btn btn-outline-primary" for="connService">Service Name</label>
-
-                            <input type="radio" class="btn-check" name="conn_type" id="connSid" value="sid" 
-                                   {% if conn_type == 'sid' %}checked{% endif %} onchange="toggleConnMode()">
-                            <label class="btn btn-outline-primary" for="connSid">SID</label>
-                        </div>
-
-                        <div id="serviceNameWrapper" class="{% if conn_type == 'sid' %}d-none{% endif %}">
-                            <div class="input-group">
-                                <span class="input-group-text small">Service Name</span>
-                                <input type="text" class="form-control" id="service_name" name="service_name" 
-                                       value="{{ service_name or 'xe' }}" placeholder="e.g. xe, orcl, xepdb1">
-                            </div>
-                            <div class="form-text small">Default for Oracle Express is often <code>xe</code> or <code>xepdb1</code></div>
-                        </div>
-
-                        <div id="sidWrapper" class="{% if conn_type != 'sid' %}d-none{% endif %}">
-                            <div class="input-group">
-                                <span class="input-group-text small">SID</span>
-                                <input type="text" class="form-control" id="sid" name="sid" 
-                                       value="{{ sid or 'xe' }}" placeholder="e.g. xe, orcl">
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Connect &amp; Open Studio
-                    </button>
-                </form>
+                </div>
             </div>
 
             <div class="card-footer bg-light p-3 text-center border-0 text-muted small">
                 <i class="bi bi-shield-check text-success me-1"></i>
-                Direct Thin-Mode Driver &bull; No Oracle Instant Client installation required
+                Pure Python Drivers &bull; Local Oracle Thin-Mode &amp; PostgreSQL SSL Support
             </div>
         </div>
     </div>
@@ -117,10 +207,15 @@
             document.getElementById('sidWrapper').classList.toggle('d-none', !isSid);
         }
 
-        const toggleBtn = document.getElementById('togglePasswordBtn');
-        const passInput = document.getElementById('password');
-        const passIcon = document.getElementById('toggleIcon');
-        toggleBtn.addEventListener('click', () => {
+        function toggleSbAuthMode() {
+            const isUri = document.getElementById('sbModeUri').checked;
+            document.getElementById('sbUriSection').classList.toggle('d-none', !isUri);
+            document.getElementById('sbParamsSection').classList.toggle('d-none', isUri);
+        }
+
+        function togglePass(inputId, iconId) {
+            const passInput = document.getElementById(inputId);
+            const passIcon = document.getElementById(iconId);
             if (passInput.type === 'password') {
                 passInput.type = 'text';
                 passIcon.classList.replace('bi-eye', 'bi-eye-slash');
@@ -128,7 +223,7 @@
                 passInput.type = 'password';
                 passIcon.classList.replace('bi-eye-slash', 'bi-eye');
             }
-        });
+        }
     </script>
 </body>
 </html>

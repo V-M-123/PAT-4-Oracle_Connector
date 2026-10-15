@@ -84,22 +84,8 @@ function initEventListeners() {
         initBtn.addEventListener('click', handleInitLibrarySchema);
     }
 
-    // SQL Console execution
-    const runSqlBtn = document.getElementById('runSqlQueryBtn');
-    if (runSqlBtn) {
-        runSqlBtn.addEventListener('click', handleRunSqlQuery);
-    }
-
-    // SQL Console keyboard shortcut (Ctrl+Enter or Cmd+Enter)
-    const sqlInput = document.getElementById('sqlConsoleInput');
-    if (sqlInput) {
-        sqlInput.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                handleRunSqlQuery();
-            }
-        });
-    }
+    // Init SQL Console & Command Studio
+    initSqlConsoleStudio();
 }
 
 // =================== LIBRARY MANAGEMENT HELPERS ===================
@@ -126,46 +112,49 @@ async function handleInitLibrarySchema() {
 }
 
 function loadLibraryTemplate(type) {
+    const activeEngine = document.body.dataset.engine || 'oracle';
+    const isSb = activeEngine === 'supabase';
     const nameInput = document.getElementById('newTableName');
+
     if (type === 'BOOKS') {
-        nameInput.value = 'BOOKS';
+        nameInput.value = isSb ? 'lms_books' : 'BOOKS';
         builderColumns = [
-            { name: 'BOOK_ID', type: 'NUMBER', length: '10', nullable: false, isPk: true },
-            { name: 'TITLE', type: 'VARCHAR2', length: '150', nullable: false, isPk: false },
-            { name: 'AUTHOR', type: 'VARCHAR2', length: '100', nullable: false, isPk: false },
-            { name: 'ISBN', type: 'VARCHAR2', length: '20', nullable: true, isPk: false },
-            { name: 'PUBLISHED_YEAR', type: 'NUMBER', length: '4', nullable: true, isPk: false },
-            { name: 'TOTAL_COPIES', type: 'NUMBER', length: '4', nullable: true, isPk: false },
-            { name: 'AVAILABLE_COPIES', type: 'NUMBER', length: '4', nullable: true, isPk: false }
+            { name: isSb ? 'book_id' : 'BOOK_ID', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '10', nullable: false, isPk: true },
+            { name: isSb ? 'title' : 'TITLE', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '150', nullable: false, isPk: false },
+            { name: isSb ? 'author' : 'AUTHOR', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '100', nullable: false, isPk: false },
+            { name: isSb ? 'isbn' : 'ISBN', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '20', nullable: true, isPk: false },
+            { name: isSb ? 'published_year' : 'PUBLISHED_YEAR', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '4', nullable: true, isPk: false },
+            { name: isSb ? 'total_copies' : 'TOTAL_COPIES', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '4', nullable: true, isPk: false },
+            { name: isSb ? 'available_copies' : 'AVAILABLE_COPIES', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '4', nullable: true, isPk: false }
         ];
     } else if (type === 'MEMBERS') {
-        nameInput.value = 'MEMBERS';
+        nameInput.value = isSb ? 'lms_members' : 'MEMBERS';
         builderColumns = [
-            { name: 'MEMBER_ID', type: 'NUMBER', length: '10', nullable: false, isPk: true },
-            { name: 'FULL_NAME', type: 'VARCHAR2', length: '100', nullable: false, isPk: false },
-            { name: 'EMAIL', type: 'VARCHAR2', length: '100', nullable: true, isPk: false },
-            { name: 'PHONE', type: 'VARCHAR2', length: '20', nullable: true, isPk: false },
-            { name: 'MEMBERSHIP_DATE', type: 'DATE', length: '', nullable: true, isPk: false },
-            { name: 'STATUS', type: 'VARCHAR2', length: '20', nullable: true, isPk: false }
+            { name: isSb ? 'member_id' : 'MEMBER_ID', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '10', nullable: false, isPk: true },
+            { name: isSb ? 'full_name' : 'FULL_NAME', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '100', nullable: false, isPk: false },
+            { name: isSb ? 'email' : 'EMAIL', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '100', nullable: true, isPk: false },
+            { name: isSb ? 'phone' : 'PHONE', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '20', nullable: true, isPk: false },
+            { name: isSb ? 'membership_date' : 'MEMBERSHIP_DATE', type: isSb ? 'TIMESTAMP' : 'DATE', length: '', nullable: true, isPk: false },
+            { name: isSb ? 'status' : 'STATUS', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '20', nullable: true, isPk: false }
         ];
     } else if (type === 'ISSUES') {
-        nameInput.value = 'BOOK_ISSUES';
+        nameInput.value = isSb ? 'lms_book_issues' : 'BOOK_ISSUES';
         builderColumns = [
-            { name: 'ISSUE_ID', type: 'NUMBER', length: '10', nullable: false, isPk: true },
-            { name: 'BOOK_ID', type: 'NUMBER', length: '10', nullable: false, isPk: false },
-            { name: 'MEMBER_ID', type: 'NUMBER', length: '10', nullable: false, isPk: false },
-            { name: 'ISSUE_DATE', type: 'DATE', length: '', nullable: false, isPk: false },
-            { name: 'DUE_DATE', type: 'DATE', length: '', nullable: true, isPk: false },
-            { name: 'RETURN_DATE', type: 'DATE', length: '', nullable: true, isPk: false },
-            { name: 'FINE_AMOUNT', type: 'NUMBER', length: '8,2', nullable: true, isPk: false },
-            { name: 'STATUS', type: 'VARCHAR2', length: '20', nullable: true, isPk: false }
+            { name: isSb ? 'issue_id' : 'ISSUE_ID', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '10', nullable: false, isPk: true },
+            { name: isSb ? 'book_id' : 'BOOK_ID', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '10', nullable: false, isPk: false },
+            { name: isSb ? 'member_id' : 'MEMBER_ID', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '10', nullable: false, isPk: false },
+            { name: isSb ? 'issue_date' : 'ISSUE_DATE', type: isSb ? 'TIMESTAMP' : 'DATE', length: '', nullable: false, isPk: false },
+            { name: isSb ? 'due_date' : 'DUE_DATE', type: isSb ? 'TIMESTAMP' : 'DATE', length: '', nullable: true, isPk: false },
+            { name: isSb ? 'return_date' : 'RETURN_DATE', type: isSb ? 'TIMESTAMP' : 'DATE', length: '', nullable: true, isPk: false },
+            { name: isSb ? 'fine_amount' : 'FINE_AMOUNT', type: isSb ? 'NUMERIC' : 'NUMBER', length: '8,2', nullable: true, isPk: false },
+            { name: isSb ? 'status' : 'STATUS', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '20', nullable: true, isPk: false }
         ];
     } else if (type === 'AUTHORS') {
-        nameInput.value = 'AUTHORS';
+        nameInput.value = isSb ? 'lms_authors' : 'AUTHORS';
         builderColumns = [
-            { name: 'AUTHOR_ID', type: 'NUMBER', length: '10', nullable: false, isPk: true },
-            { name: 'AUTHOR_NAME', type: 'VARCHAR2', length: '100', nullable: false, isPk: false },
-            { name: 'NATIONALITY', type: 'VARCHAR2', length: '50', nullable: true, isPk: false }
+            { name: isSb ? 'author_id' : 'AUTHOR_ID', type: isSb ? 'INT' : 'NUMBER', length: isSb ? '' : '10', nullable: false, isPk: true },
+            { name: isSb ? 'author_name' : 'AUTHOR_NAME', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '100', nullable: false, isPk: false },
+            { name: isSb ? 'nationality' : 'NATIONALITY', type: isSb ? 'VARCHAR' : 'VARCHAR2', length: '50', nullable: true, isPk: false }
         ];
     }
     renderColumnsBuilder();
@@ -185,6 +174,7 @@ async function loadTables(callback) {
             allTables = data.tables || [];
             document.getElementById('tableCountBadge').textContent = allTables.length;
             renderTablesList(allTables);
+            populateSqlConsoleTableSelectors();
         } else {
             showToast(data.error || 'Failed to fetch tables', true);
         }
@@ -488,7 +478,14 @@ function initCreateTableBuilder() {
 }
 
 function renderColumnsBuilder() {
+    const activeEngine = document.body.dataset.engine || 'oracle';
+    const isSb = activeEngine === 'supabase';
     const tbody = document.getElementById('columnsBuilderBody');
+
+    const sbTypes = ['VARCHAR', 'INT', 'BIGINT', 'NUMERIC', 'TEXT', 'BOOLEAN', 'TIMESTAMP', 'DATE'];
+    const oraTypes = ['VARCHAR2', 'NUMBER', 'DATE', 'CHAR', 'CLOB', 'TIMESTAMP', 'FLOAT'];
+    const typesToRender = isSb ? sbTypes : oraTypes;
+
     tbody.innerHTML = builderColumns.map((col, idx) => `
         <tr>
             <td>
@@ -498,13 +495,7 @@ function renderColumnsBuilder() {
             </td>
             <td>
                 <select class="form-select form-select-sm" onchange="updateBuilderCol(${idx}, 'type', this.value)">
-                    <option value="VARCHAR2" ${col.type === 'VARCHAR2' ? 'selected' : ''}>VARCHAR2</option>
-                    <option value="NUMBER" ${col.type === 'NUMBER' ? 'selected' : ''}>NUMBER</option>
-                    <option value="DATE" ${col.type === 'DATE' ? 'selected' : ''}>DATE</option>
-                    <option value="CHAR" ${col.type === 'CHAR' ? 'selected' : ''}>CHAR</option>
-                    <option value="CLOB" ${col.type === 'CLOB' ? 'selected' : ''}>CLOB</option>
-                    <option value="TIMESTAMP" ${col.type === 'TIMESTAMP' ? 'selected' : ''}>TIMESTAMP</option>
-                    <option value="FLOAT" ${col.type === 'FLOAT' ? 'selected' : ''}>FLOAT</option>
+                    ${typesToRender.map(t => `<option value="${t}" ${col.type.toUpperCase() === t ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
             </td>
             <td>
@@ -544,14 +535,18 @@ function removeBuilderCol(index) {
 }
 
 function updateCreateTableSqlPreview() {
-    const tname = document.getElementById('newTableName').value.trim() || 'MY_NEW_TABLE';
+    const activeEngine = document.body.dataset.engine || 'oracle';
+    const isSb = activeEngine === 'supabase';
+    const rawTname = document.getElementById('newTableName').value.trim() || (isSb ? 'my_new_table' : 'MY_NEW_TABLE');
+    const tname = isSb ? rawTname.toLowerCase() : rawTname.toUpperCase();
     const lines = [];
     const pkCols = [];
 
     builderColumns.forEach(col => {
         if (!col.name.trim()) return;
-        let colDef = `  ${col.name.trim().toUpperCase()} ${col.type}`;
-        if (col.length && (col.type === 'VARCHAR2' || col.type === 'CHAR' || col.type === 'NUMBER' || col.type === 'FLOAT')) {
+        const colName = isSb ? col.name.trim().toLowerCase() : col.name.trim().toUpperCase();
+        let colDef = `  ${colName} ${col.type}`;
+        if (col.length && (col.type === 'VARCHAR2' || col.type === 'VARCHAR' || col.type === 'CHAR' || col.type === 'NUMBER' || col.type === 'NUMERIC' || col.type === 'FLOAT')) {
             colDef += `(${col.length.trim()})`;
         }
         if (!col.nullable) {
@@ -560,7 +555,7 @@ function updateCreateTableSqlPreview() {
         lines.push(colDef);
 
         if (col.isPk) {
-            pkCols.push(col.name.trim().toUpperCase());
+            pkCols.push(colName);
         }
     });
 
@@ -568,7 +563,7 @@ function updateCreateTableSqlPreview() {
         lines.push(`  PRIMARY KEY (${pkCols.join(', ')})`);
     }
 
-    const ddl = `CREATE TABLE ${tname.toUpperCase()} (\n${lines.join(',\n')}\n);`;
+    const ddl = `CREATE TABLE ${tname} (\n${lines.join(',\n')}\n);`;
     document.getElementById('createTableSqlPreview').value = ddl;
 }
 
@@ -608,18 +603,228 @@ async function handleExecuteCreateTable() {
     }
 }
 
-// =================== SQL CONSOLE ===================
+// =================== SQL CONSOLE STUDIO (DQL / DML / DDL) ===================
 
-function setSqlQuery(sql) {
-    const input = document.getElementById('sqlConsoleInput');
+function getActiveCategory() {
+    if (document.getElementById('tab-dml')?.classList.contains('active')) return 'dml';
+    if (document.getElementById('tab-ddl')?.classList.contains('active')) return 'ddl';
+    return 'dql';
+}
+
+function getActiveConsoleInput() {
+    const cat = getActiveCategory();
+    return document.getElementById(`${cat}ConsoleInput`);
+}
+
+function getSelectedTableForCategory(category) {
+    const select = document.getElementById(`${category}TableSelect`);
+    if (select && select.value) return select.value;
+    if (currentTableName) return currentTableName;
+    return (allTables.length > 0) ? allTables[0].name : 'MY_TABLE';
+}
+
+function populateSqlConsoleTableSelectors() {
+    const selects = ['dqlTableSelect', 'dmlTableSelect', 'ddlTableSelect'];
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const currentVal = el.value;
+        el.innerHTML = '<option value="">-- Choose Table --</option>' + 
+            allTables.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+        if (currentVal && allTables.some(t => t.name === currentVal)) {
+            el.value = currentVal;
+        } else if (currentTableName && allTables.some(t => t.name === currentTableName)) {
+            el.value = currentTableName;
+        }
+    });
+}
+
+function setSqlQuery(sql, category = null) {
+    if (category) {
+        const tabBtn = document.getElementById(`tab-${category}`);
+        if (tabBtn && typeof bootstrap !== 'undefined') {
+            bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+        }
+    }
+    const cat = category || getActiveCategory();
+    const input = document.getElementById(`${cat}ConsoleInput`);
     if (input) {
         input.value = sql;
         input.focus();
     }
 }
 
+function appendToConsoleInput(category, text) {
+    const input = document.getElementById(`${category}ConsoleInput`);
+    if (input) {
+        let val = input.value.trim();
+        if (val.endsWith(';')) val = val.slice(0, -1).trim();
+        input.value = (val ? val + text : text.trim()) + ';';
+        input.focus();
+    }
+}
+
+function initSqlConsoleStudio() {
+    const modalEl = document.getElementById('sqlConsoleModal');
+    if (modalEl) {
+        modalEl.addEventListener('show.bs.modal', () => {
+            populateSqlConsoleTableSelectors();
+        });
+    }
+
+    // Run SQL button
+    const runSqlBtn = document.getElementById('runSqlQueryBtn');
+    if (runSqlBtn) {
+        runSqlBtn.addEventListener('click', handleRunSqlQuery);
+    }
+
+    // Ctrl+Enter on all console inputs
+    document.querySelectorAll('.sql-console-input').forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                handleRunSqlQuery();
+            }
+        });
+    });
+
+    // Clear button
+    const clearBtn = document.getElementById('clearSqlConsoleBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            const activeInput = getActiveConsoleInput();
+            if (activeInput) activeInput.value = '';
+            const resultWrapper = document.getElementById('sqlQueryResultWrapper');
+            if (resultWrapper) resultWrapper.classList.add('d-none');
+            const statusEl = document.getElementById('sqlExecutionStatus');
+            if (statusEl) statusEl.innerHTML = '<i class="bi bi-info-circle me-1"></i>Cleared. Press <kbd>Ctrl+Enter</kbd> to execute';
+        });
+    }
+
+    // DQL Builders
+    const btnDqlSelectAll = document.getElementById('btnDqlSelectAll');
+    if (btnDqlSelectAll) {
+        btnDqlSelectAll.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('dql');
+            setSqlQuery(`SELECT * FROM ${t};`, 'dql');
+        });
+    }
+
+    const btnDqlCount = document.getElementById('btnDqlCount');
+    if (btnDqlCount) {
+        btnDqlCount.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('dql');
+            setSqlQuery(`SELECT COUNT(*) AS TOTAL_COUNT FROM ${t};`, 'dql');
+        });
+    }
+
+    const btnDqlWhere = document.getElementById('btnDqlWhere');
+    if (btnDqlWhere) {
+        btnDqlWhere.addEventListener('click', () => {
+            appendToConsoleInput('dql', '\nWHERE 1=1');
+        });
+    }
+
+    const btnDqlOrderBy = document.getElementById('btnDqlOrderBy');
+    if (btnDqlOrderBy) {
+        btnDqlOrderBy.addEventListener('click', () => {
+            appendToConsoleInput('dql', '\nORDER BY 1 ASC');
+        });
+    }
+
+    const btnDqlLimit = document.getElementById('btnDqlLimit');
+    if (btnDqlLimit) {
+        btnDqlLimit.addEventListener('click', () => {
+            appendToConsoleInput('dql', '\nFETCH FIRST 50 ROWS ONLY');
+        });
+    }
+
+    // DML Templates
+    const btnDmlInsert = document.getElementById('btnDmlInsert');
+    if (btnDmlInsert) {
+        btnDmlInsert.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('dml');
+            setSqlQuery(`INSERT INTO ${t} (\n    -- col1, col2\n) VALUES (\n    -- val1, val2\n);`, 'dml');
+        });
+    }
+
+    const btnDmlUpdate = document.getElementById('btnDmlUpdate');
+    if (btnDmlUpdate) {
+        btnDmlUpdate.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('dml');
+            setSqlQuery(`UPDATE ${t}\nSET COLUMN_NAME = 'new_value'\nWHERE ID = 1;`, 'dml');
+        });
+    }
+
+    const btnDmlDelete = document.getElementById('btnDmlDelete');
+    if (btnDmlDelete) {
+        btnDmlDelete.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('dml');
+            setSqlQuery(`DELETE FROM ${t}\nWHERE ID = 1;`, 'dml');
+        });
+    }
+
+    // DDL Templates
+    const btnDdlCreate = document.getElementById('btnDdlCreate');
+    if (btnDdlCreate) {
+        btnDdlCreate.addEventListener('click', () => {
+            setSqlQuery(`CREATE TABLE NEW_TABLE (\n    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n    NAME VARCHAR2(100) NOT NULL,\n    CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);`, 'ddl');
+        });
+    }
+
+    const btnDdlAddCol = document.getElementById('btnDdlAddCol');
+    if (btnDdlAddCol) {
+        btnDdlAddCol.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('ddl');
+            setSqlQuery(`ALTER TABLE ${t} ADD (NEW_COLUMN VARCHAR2(100));`, 'ddl');
+        });
+    }
+
+    const btnDdlDropCol = document.getElementById('btnDdlDropCol');
+    if (btnDdlDropCol) {
+        btnDdlDropCol.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('ddl');
+            setSqlQuery(`ALTER TABLE ${t} DROP COLUMN COLUMN_NAME;`, 'ddl');
+        });
+    }
+
+    const btnDdlTruncate = document.getElementById('btnDdlTruncate');
+    if (btnDdlTruncate) {
+        btnDdlTruncate.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('ddl');
+            setSqlQuery(`TRUNCATE TABLE ${t};`, 'ddl');
+        });
+    }
+
+    const btnDdlDrop = document.getElementById('btnDdlDrop');
+    if (btnDdlDrop) {
+        btnDdlDrop.addEventListener('click', () => {
+            const t = getSelectedTableForCategory('ddl');
+            setSqlQuery(`DROP TABLE ${t} CASCADE CONSTRAINTS;`, 'ddl');
+        });
+    }
+
+    // Table Selectors change handler
+    ['dql', 'dml', 'ddl'].forEach(cat => {
+        const select = document.getElementById(`${cat}TableSelect`);
+        if (select) {
+            select.addEventListener('change', (e) => {
+                const tableName = e.target.value;
+                if (!tableName) return;
+                const input = document.getElementById(`${cat}ConsoleInput`);
+                if (input && (!input.value.trim() || input.value.includes('SELECT * FROM') || input.value.includes('MY_TABLE'))) {
+                    if (cat === 'dql') input.value = `SELECT * FROM ${tableName};`;
+                }
+            });
+        }
+    });
+}
+
 async function handleRunSqlQuery() {
-    const sql = document.getElementById('sqlConsoleInput').value.trim();
+    const category = getActiveCategory();
+    const input = document.getElementById(`${category}ConsoleInput`);
+    const sql = input ? input.value.trim() : '';
+
     const statusEl = document.getElementById('sqlExecutionStatus');
     const resultWrapper = document.getElementById('sqlQueryResultWrapper');
     const msgEl = document.getElementById('sqlQueryMessage');
@@ -627,11 +832,28 @@ async function handleRunSqlQuery() {
     const tbody = document.getElementById('sqlQueryTableBody');
 
     if (!sql) {
-        statusEl.textContent = 'Please enter a query.';
+        statusEl.innerHTML = '<span class="text-danger">Please enter a query or choose a template.</span>';
         return;
     }
 
-    statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Running...';
+    // Safety checks
+    const upperSql = sql.toUpperCase();
+    if (category === 'dml') {
+        const isUpdateOrDelete = upperSql.includes('UPDATE') || upperSql.includes('DELETE');
+        if (isUpdateOrDelete && !upperSql.includes('WHERE')) {
+            if (!confirm('⚠️ WARNING: Your UPDATE or DELETE command does NOT contain a WHERE clause.\n\nThis will modify or delete ALL rows in the table.\n\nAre you sure you want to proceed?')) {
+                return;
+            }
+        }
+    } else if (category === 'ddl') {
+        if (upperSql.includes('DROP') || upperSql.includes('TRUNCATE')) {
+            if (!confirm(`⚠️ CAUTION: Executing this DDL command will immediately alter or drop table schema in Oracle (auto-committed).\n\nAre you sure you want to proceed?`)) {
+                return;
+            }
+        }
+    }
+
+    statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1 text-primary"></span>Executing...';
     resultWrapper.classList.remove('d-none');
     msgEl.classList.add('d-none');
     thead.innerHTML = '';
@@ -641,12 +863,12 @@ async function handleRunSqlQuery() {
         const res = await fetch('/api/query', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sql: sql })
+            body: JSON.stringify({ sql: sql, category: category })
         });
         const data = await res.json();
 
         if (res.ok) {
-            statusEl.textContent = 'Execution finished successfully.';
+            statusEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Finished successfully</span>';
             if (data.type === 'select') {
                 msgEl.className = 'alert alert-info py-2 small';
                 msgEl.textContent = `Query returned ${data.count} row(s).`;
@@ -662,17 +884,21 @@ async function handleRunSqlQuery() {
                 msgEl.className = 'alert alert-success py-2 small';
                 msgEl.textContent = data.message || 'Executed successfully.';
                 msgEl.classList.remove('d-none');
-                // Refresh tables in background in case of DDL
-                loadTables();
+
+                if (data.type === 'ddl') {
+                    loadTables();
+                } else if (data.type === 'dml' && currentTableName) {
+                    loadTableData(currentTableName);
+                }
             }
         } else {
-            statusEl.textContent = 'Execution failed.';
+            statusEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Execution error</span>';
             msgEl.className = 'alert alert-danger py-2 small';
             msgEl.textContent = data.error || 'Error executing SQL';
             msgEl.classList.remove('d-none');
         }
     } catch (err) {
-        statusEl.textContent = 'Connection error.';
+        statusEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Connection error</span>';
         msgEl.className = 'alert alert-danger py-2 small';
         msgEl.textContent = 'Network or server error';
         msgEl.classList.remove('d-none');
